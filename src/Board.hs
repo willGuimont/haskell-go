@@ -1,45 +1,61 @@
-module Board
-    (
-    ) where
+{-# OPTIONS -Wall #-}
 
-data Tile = Black | White | Empty
-type Row = [Tile]
-type Board = [Row]
+module Board
+  ( Stone(Stone)
+  , stoneType
+  , position
+  , StoneType(Empty, Black, White)
+  , Board(Board)
+  , size
+  , stones
+  , Position
+  , Size
+  , makeBoard
+  , getStone
+  , placeStone
+  ) where
+
+import           Data.List
+import           Data.List.Tools
+import           Safe
+
+data StoneType
+  = Black
+  | White
+  | Empty
+  deriving (Eq)
+
+data Stone =
+  Stone
+    { stoneType :: StoneType
+    , position  :: Position
+    }
+  deriving (Eq)
+
+data Board =
+  Board
+    { stones :: [Stone]
+    , size   :: Size
+    }
+
 type Position = (Int, Int)
+
 type Size = (Int, Int)
 
 makeBoard :: Size -> Board
-makeBoard s = replicate y $ replicate x Empty
-  where x = fst s
-        y = snd s
-
-getRow :: Board -> Int -> Maybe Row
-getRow = getNth
-
-getTile :: Board -> Position -> Maybe Tile
-getTile board pos = getRow board y >>= \r -> getNth r x
-  where x = fst pos
-        y = snd pos
-
-play :: Board -> Tile -> Position -> Either () Board
-play board tile position =
-  case newBoard of
-    Nothing -> Left ()
-    Just b -> Right b
+makeBoard s = Board emptyStones s
   where
-    x = fst position
-    y = snd position
-    oldRow = getRow board y
-    fMapped = fmap (\r -> replace r x tile)
-    newRow = fMapped oldRow
-    newBoard = undefined
+    (sx, sy) = s
+    positions = [(x, y) | x <- [0 .. (sx - 1)], y <- [0 .. sy - 1]]
+    emptyStones = map (Stone Empty) positions
 
-getNth :: [a] -> Int -> Maybe a
-getNth [] 0 = Nothing
-getNth xs 0 = Just (head xs)
-getNth xs n = getNth (tail xs) (n - 1)
+getStone :: Board -> Position -> Maybe Stone
+getStone board pos = headMay $ filter (\x -> position x == pos) (stones board)
 
-replace :: [a] -> Int -> a -> [a]
-replace xs n x = start ++ [x] ++ rest
-  where start = take n xs
-        rest = drop (n + 1) xs
+placeStone :: Board -> StoneType -> Position -> Maybe Board
+placeStone board s pos = b
+  where
+    ss = stones board
+    index = getStone board pos >>= (`elemIndex` ss)
+    newStones = (\i -> setAt ss i $ Stone s pos) <$> index
+    b = (\x -> Board x (size board)) <$> newStones

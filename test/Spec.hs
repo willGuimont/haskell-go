@@ -1,6 +1,7 @@
-import Test.Hspec
-import Test.QuickCheck
-import Control.Exception (evaluate)
+import           Control.Exception     (evaluate)
+import           Test.Hspec
+import           Test.Hspec.QuickCheck
+import           Test.QuickCheck
 
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = undefined
