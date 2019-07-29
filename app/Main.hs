@@ -46,8 +46,8 @@ positionToPixel x = fromIntegral (x - halfBoardSize) * pixelPerCell
 drawStone :: Stone -> [Picture]
 drawStone Stone {stoneType = Empty} = [blank]
 drawStone Stone {stoneType = s, position = (x, y)} =
-  [ translate (positionToPixel x) (positionToPixel y) $ color c $ circleSolid stoneRadius
-  , translate (positionToPixel x) (positionToPixel y) $ color black $ circle stoneRadius
+  [ translated $ color c $ circleSolid stoneRadius
+  , translated $ color black $ circle stoneRadius
   ]
   where
     c =
@@ -55,6 +55,7 @@ drawStone Stone {stoneType = s, position = (x, y)} =
         White -> white
         Black -> black
         Empty -> black
+    translated = translate (positionToPixel x) (positionToPixel y)
 
 drawBoard :: Board -> [Picture]
 drawBoard Board {size = (sx, sy)} = makeLine sx id ++ makeLine sy swap
