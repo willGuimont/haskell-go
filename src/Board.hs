@@ -52,10 +52,25 @@ makeBoard s = Board emptyStones s
 getStone :: Board -> Position -> Maybe Stone
 getStone board pos = headMay $ filter (\x -> position x == pos) (stones board)
 
-placeStone :: Board -> StoneType -> Position -> Maybe Board
-placeStone board s pos = b
+isPositionEmpty :: Board -> StoneType -> Position -> Bool
+isPositionEmpty b _ p =
+  case atPos of
+    Nothing -> False
+    Just x  -> stoneType x == Empty
   where
-    ss = stones board
-    index = getStone board pos >>= (`elemIndex` ss)
-    newStones = (\i -> setAt ss i $ Stone s pos) <$> index
-    b = (\x -> Board x (size board)) <$> newStones
+    atPos = getStone b p
+
+canPlay :: Board -> StoneType -> Position -> Bool
+canPlay b s p = all (\f -> f b s p) [isPositionEmpty]
+
+placeStone :: Board -> StoneType -> Position -> Maybe Board
+placeStone b s p =
+  if canPlayStone
+    then newBoard
+    else Nothing
+  where
+    canPlayStone = canPlay b s p
+    ss = stones b
+    index = getStone b p >>= (`elemIndex` ss)
+    newStones = (\i -> setAt ss i $ Stone s p) <$> index
+    newBoard = (\x -> Board x (size b)) <$> newStones
