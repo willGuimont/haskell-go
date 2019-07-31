@@ -37,6 +37,7 @@ data Board =
     { stones :: [Stone]
     , size   :: Size
     }
+  deriving (Eq)
 
 type Position = (Int, Int)
 
@@ -52,25 +53,36 @@ makeBoard s = Board emptyStones s
 getStone :: Board -> Position -> Maybe Stone
 getStone board pos = headMay $ filter (\x -> position x == pos) (stones board)
 
-isPositionEmpty :: Board -> StoneType -> Position -> Bool
-isPositionEmpty b _ p =
+setStone :: Board -> Position -> StoneType -> Maybe Board
+setStone b p s = newBoard
+  where
+    ss = stones b
+    index = getStone b p >>= (`elemIndex` ss)
+    newStones = (\i -> setAt ss i $ Stone s p) <$> index
+    newBoard = (\x -> Board x (size b)) <$> newStones
+
+isPositionEmpty :: Board -> [Board] -> StoneType -> Position -> Bool
+isPositionEmpty b _ _ p =
   case atPos of
     Nothing -> False
     Just x  -> stoneType x == Empty
   where
     atPos = getStone b p
 
-canPlay :: Board -> StoneType -> Position -> Bool
-canPlay b s p = all (\f -> f b s p) [isPositionEmpty]
+isNotKOMove :: Board -> [Board] -> StoneType -> Position -> Bool
+isNotKOMove b bs s p = nextBoard /= possibleKO
+  where
+    nextBoard = setStone b p s
+    possibleKO = lastMay bs
 
-placeStone :: Board -> StoneType -> Position -> Maybe Board
-placeStone b s p =
+canPlay :: Board -> [Board] -> StoneType -> Position -> Bool
+canPlay b bs s p = all (\f -> f b bs s p) [isPositionEmpty, isNotKOMove]
+
+placeStone :: Board -> [Board] -> StoneType -> Position -> Maybe Board
+placeStone b bs s p =
   if canPlayStone
     then newBoard
     else Nothing
   where
-    canPlayStone = canPlay b s p
-    ss = stones b
-    index = getStone b p >>= (`elemIndex` ss)
-    newStones = (\i -> setAt ss i $ Stone s p) <$> index
-    newBoard = (\x -> Board x (size b)) <$> newStones
+    canPlayStone = canPlay b bs s p
+    newBoard = setStone b p s

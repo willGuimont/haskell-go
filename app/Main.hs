@@ -8,8 +8,9 @@ import           Data.Tuple
 
 import           Board
 
-type World = (Board, StoneType)
+type World = (Board, StoneType, [Board])
 
+-- Constants
 fps :: Int
 fps = 20
 
@@ -20,11 +21,12 @@ halfBoardSize :: Int
 halfBoardSize = 9 `div` 2
 
 windowSize :: Int
-windowSize = 500
+windowSize = 550
 
 padding :: Int
-padding = 20
+padding = 50
 
+-- Helper functions
 boardSizePixel :: Float
 boardSizePixel = fromIntegral $ windowSize - 2 * padding :: Float
 
@@ -46,17 +48,18 @@ positionToPixel x = fromIntegral (x - halfBoardSize) * pixelPerCell
 pixelToPosition :: Float -> Int
 pixelToPosition p = halfBoardSize + floor (p / pixelPerCell + 1 / 2)
 
+-- Graphics
 drawStone :: Stone -> [Picture]
 drawStone Stone {stoneType = Empty} = [blank]
 drawStone Stone {stoneType = s, position = (x, y)} =
-  [translated $ color c $ circleSolid stoneRadius, translated $ color black $ circle stoneRadius]
+  [f col circleSolid, f black circle]
   where
-    c =
+    col =
       case s of
         White -> white
         Black -> black
         Empty -> black
-    translated = translate (positionToPixel x) (positionToPixel y)
+    f c g = translate (positionToPixel x) (positionToPixel y) $ color c $ g stoneRadius
 
 drawBoard :: Board -> [Picture]
 drawBoard Board {size = (sx, sy)} = makeLine sx id ++ makeLine sy swap
@@ -66,34 +69,44 @@ drawBoard Board {size = (sx, sy)} = makeLine sx id ++ makeLine sy swap
         (\i -> line [f (positionToPixel i, -boardSizePixel / 2), f (positionToPixel i, boardSizePixel / 2)])
         [0 .. s - 1]
 
+-- Game
+initialState :: World
+initialState = (makeBoard boardSize, Black, [])
+
 draw :: World -> Picture
-draw (b, _) = pictures $ drawBoard b ++ concatMap drawStone ss
+draw (b, s, _) =
+  pictures $ drawBoard b ++ concatMap drawStone ss ++ [textTurn]
   where
     ss = stones b
+    turn =
+      case s of
+        White -> "White"
+        Black -> "Black"
+        Empty -> "Invalid"
+    pos = fromIntegral windowSize / 2
+    textTurn = translate (-pos) (pos - fromIntegral padding / 2) $ scale 0.25 0.25 $ text turn
 
 inputHandler :: Event -> World -> World
-inputHandler (EventKey (MouseButton LeftButton) Down _ (x', y')) (b, s) = nextWorld
+inputHandler (EventKey (MouseButton LeftButton) Down _ (x', y')) (b, s, bs) = nextWorld
   where
     x = pixelToPosition x'
     y = pixelToPosition y'
-    maybeWorld = placeStone b s (x, y)
-    newBoard = fromMaybe b maybeWorld
-    otherMove = case s of
-      Black -> White
-      White -> Black
-      Empty -> Black
-    nextMove = if isJust maybeWorld then otherMove else s
-    nextWorld = (newBoard, nextMove)
+    maybeWorld = placeStone b bs s (x, y)
+    nextBoard = fromMaybe b maybeWorld
+    otherMove =
+      case s of
+        Black -> White
+        White -> Black
+        Empty -> Black
+    (nextMove, previousBoard) =
+      if isJust maybeWorld
+        then (otherMove, b : bs)
+        else (s, bs)
+    nextWorld = (nextBoard, nextMove, take 2 previousBoard)
 inputHandler _ b = b
 
 update :: Float -> World -> World
 update _ w = w
-
-initialBoard :: Board
-initialBoard = makeBoard boardSize
-
-initialState :: World
-initialState = (initialBoard, Black)
 
 main :: IO ()
 main = play windowDisplay (light orange) fps initialState draw inputHandler update
