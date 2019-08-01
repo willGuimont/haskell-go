@@ -1,5 +1,3 @@
-{-# OPTIONS -Wall #-}
-
 module Board
   ( Stone(Stone)
   , stoneType
@@ -10,9 +8,6 @@ module Board
   , stones
   , Position
   , Size
-  , makeBoard
-  , getStone
-  , placeStone
   ) where
 
 import           Data.List
@@ -50,39 +45,13 @@ makeBoard s = Board emptyStones s
     positions = [(x, y) | x <- [0 .. (sx - 1)], y <- [0 .. sy - 1]]
     emptyStones = map (Stone Empty) positions
 
-getStone :: Board -> Position -> Maybe Stone
-getStone board pos = headMay $ filter (\x -> position x == pos) (stones board)
+getStone :: Board -> Position -> Stone
+getStone board pos = head $ filter (\x -> position x == pos) (stones board)
 
 setStone :: Board -> Position -> StoneType -> Maybe Board
 setStone b p s = newBoard
   where
     ss = stones b
-    index = getStone b p >>= (`elemIndex` ss)
+    index = getStone b p `elemIndex` ss
     newStones = (\i -> setAt ss i $ Stone s p) <$> index
     newBoard = (\x -> Board x (size b)) <$> newStones
-
-isPositionEmpty :: Board -> [Board] -> StoneType -> Position -> Bool
-isPositionEmpty b _ _ p =
-  case atPos of
-    Nothing -> False
-    Just x  -> stoneType x == Empty
-  where
-    atPos = getStone b p
-
-isNotKOMove :: Board -> [Board] -> StoneType -> Position -> Bool
-isNotKOMove b bs s p = nextBoard /= possibleKO
-  where
-    nextBoard = setStone b p s
-    possibleKO = lastMay bs
-
-canPlay :: Board -> [Board] -> StoneType -> Position -> Bool
-canPlay b bs s p = all (\f -> f b bs s p) [isPositionEmpty, isNotKOMove]
-
-placeStone :: Board -> [Board] -> StoneType -> Position -> Maybe Board
-placeStone b bs s p =
-  if canPlayStone
-    then newBoard
-    else Nothing
-  where
-    canPlayStone = canPlay b bs s p
-    newBoard = setStone b p s

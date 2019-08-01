@@ -4,4 +4,5 @@ import           Test.Hspec.QuickCheck
 import           Test.QuickCheck
 
 main :: IO ()
-main = undefined
+main = hspec $ do
+  describe

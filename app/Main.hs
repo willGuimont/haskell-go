@@ -6,7 +6,7 @@ import           Graphics.Gloss.Interface.IO.Game
 import           Data.Maybe
 import           Data.Tuple
 
-import           Board
+import           BoardUtils
 
 type World = (Board, StoneType, [Board])
 
