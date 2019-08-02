@@ -22,21 +22,21 @@ data StoneType
   = Black
   | White
   | Empty
-  deriving (Eq)
+  deriving (Eq, Show)
 
 data Stone =
   Stone
     { stoneType :: StoneType
     , position :: Position
     }
-  deriving (Eq)
+  deriving (Eq, Show)
 
 data Board =
   Board
     { stones :: [Stone]
     , size :: Size
     }
-  deriving (Eq)
+  deriving (Eq, Show)
 
 type Position = (Int, Int)
 
