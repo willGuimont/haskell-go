@@ -1,3 +1,5 @@
+{-# OPTIONS -Wall #-}
+
 module Board
   ( Stone(Stone)
   , stoneType
@@ -8,11 +10,13 @@ module Board
   , stones
   , Position
   , Size
+  , makeBoard
+  , getStone
+  , setStone
   ) where
 
-import           Data.List
-import           Data.List.Tools
-import           Safe
+import Data.List
+import Data.List.Tools
 
 data StoneType
   = Black
@@ -23,14 +27,14 @@ data StoneType
 data Stone =
   Stone
     { stoneType :: StoneType
-    , position  :: Position
+    , position :: Position
     }
   deriving (Eq)
 
 data Board =
   Board
     { stones :: [Stone]
-    , size   :: Size
+    , size :: Size
     }
   deriving (Eq)
 

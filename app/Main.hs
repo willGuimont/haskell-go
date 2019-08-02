@@ -1,12 +1,13 @@
 {-# OPTIONS -Wall #-}
 
-import           Graphics.Gloss
-import           Graphics.Gloss.Interface.IO.Game
+import Graphics.Gloss
+import Graphics.Gloss.Interface.IO.Game
 
-import           Data.Maybe
-import           Data.Tuple
+import Data.Maybe
+import Data.Tuple
 
-import           BoardUtils
+import Board
+import BoardUtils
 
 type World = (Board, StoneType, [Board])
 
@@ -51,8 +52,7 @@ pixelToPosition p = halfBoardSize + floor (p / pixelPerCell + 1 / 2)
 -- Graphics
 drawStone :: Stone -> [Picture]
 drawStone Stone {stoneType = Empty} = [blank]
-drawStone Stone {stoneType = s, position = (x, y)} =
-  [f col circleSolid, f black circle]
+drawStone Stone {stoneType = s, position = (x, y)} = [f col circleSolid, f black circle]
   where
     col =
       case s of
@@ -74,8 +74,7 @@ initialState :: World
 initialState = (makeBoard boardSize, Black, [])
 
 draw :: World -> Picture
-draw (b, s, _) =
-  pictures $ drawBoard b ++ concatMap drawStone ss ++ [textTurn]
+draw (b, s, _) = pictures $ drawBoard b ++ concatMap drawStone ss ++ [textTurn]
   where
     ss = stones b
     turn =
