@@ -3,10 +3,11 @@
 module BoardUtils
   ( placeStone
   , hasLiberty
+  , getGroup
   ) where
 
-import Safe
 import Data.List
+import Safe
 
 import Board
 
@@ -21,6 +22,7 @@ getNeighborPositions b p = filter (isPositionValid b) [(x + i, y + j) | (i, j) <
   where
     (x, y) = p
 
+-- FIXME
 hasLiberty :: Board -> Position -> Bool
 hasLiberty b p = snd $ hasLiberty' st s [] False getNextStones
   where
@@ -30,15 +32,29 @@ hasLiberty b p = snd $ hasLiberty' st s [] False getNextStones
 
 hasLiberty' :: StoneType -> Stone -> [Stone] -> Bool -> (Stone -> [Stone]) -> ([Stone], Bool)
 hasLiberty' _ s visited True _ = (s : visited, True)
-hasLiberty' st s visited found gs =
+hasLiberty' st s visited _ gs =
   if not (null empty)
     then (visited, True)
-    else foldl (\(v, b) c -> hasLiberty' st c (c:v) b gs) (visited, False) sameColor
+    else foldl (\(v, b) c -> hasLiberty' st c (c : v) b gs) (visited, False) sameColor
   where
     nextStones = gs s \\ visited
     is y x = stoneType x == y
     empty = filter (is Empty) nextStones
     sameColor = filter (is st) nextStones
+
+-- FIXME
+-- Use multipass on array instead
+getGroup :: Board -> Position -> [Stone]
+getGroup b p = snd (getGroup' s getNextStones st [] [s])
+  where
+    s = getStone b p
+    st = stoneType s
+    getNextStones x = map (getStone b) (getNeighborPositions b (position x))
+
+getGroup' :: Stone -> (Stone -> [Stone]) -> StoneType -> [Stone] -> [Stone] -> ([Stone], [Stone])
+getGroup' s gs st visited ss = foldl (\(v, g) c -> getGroup' c gs st (c : v) (c : g)) (visited, ss) nextStones
+  where
+    nextStones = filter (\x -> stoneType x == st) $ gs s \\ visited
 
 type CanPlayInterface = Board -> [Board] -> StoneType -> Position -> Bool
 
