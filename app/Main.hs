@@ -70,8 +70,11 @@ drawBoard Board {size = (sx, sy)} = makeLine sx id ++ makeLine sy swap
         [0 .. s - 1]
 
 -- Game
+initialBoard :: Board
+initialBoard = makeBoard (9, 9)
+
 initialState :: World
-initialState = (makeBoard boardSize, Black, [])
+initialState = (initialBoard, Black, [])
 
 draw :: World -> Picture
 draw (b, s, _) = pictures $ drawBoard b ++ concatMap drawStone ss ++ [textTurn]
