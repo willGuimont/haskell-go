@@ -4,10 +4,12 @@ module BoardUtils
   ( placeStone
   , hasLiberties
   , getGroup
+  , killGroup
   ) where
 
 import Data.List
-import Data.Maybe
+import Data.Monoid
+import Data.Tuple.Curry
 import Debug.Trace
 import Safe
 
@@ -19,11 +21,6 @@ isPositionValid b p = x >= 0 && y >= 0 && x < sx && y < sy
     (x, y) = p
     (sx, sy) = size b
 
-getNeighborPositions :: Board -> Position -> [Position]
-getNeighborPositions b p = filter (isPositionValid b) [(x + i, y + j) | (i, j) <- [(1, 0), (-1, 0), (0, 1), (0, -1)]]
-  where
-    (x, y) = p
-
 isNeighbor :: Stone -> Stone -> Bool
 isNeighbor x y = abs (fst p1 - fst p2) + abs (snd p1 - snd p2) == 1
   where
@@ -31,7 +28,9 @@ isNeighbor x y = abs (fst p1 - fst p2) + abs (snd p1 - snd p2) == 1
     p2 = position y
 
 getNeighbors :: Board -> Stone -> [Stone]
-getNeighbors b s = map (getStone b) $ getNeighborPositions b $ position s
+getNeighbors b s = filter (isNeighbor s) ss
+  where
+    ss = stones b
 
 isEmptyOrType :: StoneType -> Stone -> Bool
 isEmptyOrType st s =
@@ -39,9 +38,13 @@ isEmptyOrType st s =
    in y == Empty || y == st
 
 hasLiberties :: Board -> Position -> Bool
-hasLiberties b p = foldBoard b p False combine predicate
+hasLiberties b p = hasLibertiesStone b (getStone b p)
+
+hasLibertiesStone :: Board -> Stone -> Bool
+hasLibertiesStone b s = foldBoard b p False combine predicate
   where
-    st = stoneType $ getStone b p
+    p = position s
+    st = stoneType s
     combine x y = x || stoneType y == Empty
     predicate = isEmptyOrType st
 
@@ -51,16 +54,16 @@ getGroup b p = foldBoard b p [] (flip (:)) (\s -> stoneType s == st)
     st = stoneType $ getStone b p
 
 foldBoard :: Board -> Position -> a -> (a -> Stone -> a) -> (Stone -> Bool) -> a
-foldBoard b p start = foldBoard' ss start remainder
+foldBoard b p start = foldStones ss start remainder
   where
     s = getStone b p
     ss = [s]
     remainder = stones b \\ ss
 
-foldBoard' :: [Stone] -> a -> [Stone] -> (a -> Stone -> a) -> (Stone -> Bool) -> a
-foldBoard' [] accumulator _ _ _ = accumulator
-foldBoard' stack accumulator remainder combine predicate =
-  foldBoard' newStack newAccumulator newRemainder combine predicate
+foldStones :: [Stone] -> a -> [Stone] -> (a -> Stone -> a) -> (Stone -> Bool) -> a
+foldStones [] accumulator _ _ _ = accumulator
+foldStones stack accumulator remainder combine predicate =
+  foldStones newStack newAccumulator newRemainder combine predicate
   where
     current = head stack
     newNeighbors = filter predicate $ filter (isNeighbor current) remainder
@@ -68,10 +71,32 @@ foldBoard' stack accumulator remainder combine predicate =
     newRemainder = remainder \\ newNeighbors
     newAccumulator = accumulator `combine` current
 
+killGroup :: Board -> [Stone] -> Maybe Board
+killGroup b = foldl (\n s -> n >>= (\x -> setStone x (position s) Empty)) (Just b)
+
+updateBoard :: Board -> Position -> Maybe Board
+updateBoard board p =
+  foldl
+    (\mb s ->
+       mb >>=
+       (\b ->
+          if not $ hasLibertiesStone b s
+            then (let ss = getGroup b (position s)
+                   in killGroup b ss)
+            else mb))
+    (Just board)
+    toCheck
+  where
+    current = getStone board p
+    neighbors = getNeighbors board current
+    toCheck = neighbors ++ [current]
+
 type CanPlayInterface = Board -> Maybe Board -> [Board] -> StoneType -> Position -> Bool
 
 canPlay :: CanPlayInterface
-canPlay b n bs st p = all (\f -> f b n bs st p) [canPlayPosition, isPositionEmpty, isNotKOMove, isNotSuicide]
+canPlay v w x y z = getAll $ foldMap (All .) predicates (v, w, x, y, z)
+  where
+    predicates = map uncurryN [canPlayPosition, isPositionEmpty, isNotKOMove, isNotSuicide]
 
 isPositionEmpty :: CanPlayInterface
 isPositionEmpty b _ _ _ p = stoneType s == Empty
@@ -79,7 +104,7 @@ isPositionEmpty b _ _ _ p = stoneType s == Empty
     s = getStone b p
 
 isNotKOMove :: CanPlayInterface
-isNotKOMove _ n bs s p = n /= possibleKO
+isNotKOMove _ n bs _ _ = trace (show (length bs)) $ n /= possibleKO
   where
     possibleKO = lastMay bs
 
@@ -87,13 +112,21 @@ canPlayPosition :: CanPlayInterface
 canPlayPosition b _ _ _ = isPositionValid b
 
 isNotSuicide :: CanPlayInterface
-isNotSuicide _ n _ _ p = maybe False (`hasLiberties` p) n
+isNotSuicide _ n _ _ p =
+  maybe
+    False
+    (\x ->
+       let s = getStone x p
+        in stoneType s /= Empty)
+    n
 
+-- newBoard needs to be after the kill
 placeStone :: Board -> [Board] -> StoneType -> Position -> Maybe Board
 placeStone b bs st p =
   if canPlayStone
-    then newBoard
+    then updatedBoard
     else Nothing
   where
     newBoard = setStone b p st
-    canPlayStone = canPlay b newBoard bs st p
+    updatedBoard = newBoard >>= (`updateBoard` p)
+    canPlayStone = canPlay b updatedBoard bs st p

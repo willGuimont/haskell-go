@@ -24,6 +24,7 @@ dependencies:
 - gloss
 - safe
 - yjtools
+- tuple
 
 library:
   source-dirs: src

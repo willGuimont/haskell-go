@@ -57,5 +57,7 @@
     <orderEntry type="library" name="half-0.3" level="project" />
     <orderEntry type="library" name="safe-0.3.17" level="project" />
     <orderEntry type="library" name="yjtools-0.9.18" level="project" />
+    <orderEntry type="library" name="tuple-0.3.0.2" level="project" />
+    <orderEntry type="library" name="OneTuple-0.2.2" level="project" />
   </component>
 </module>

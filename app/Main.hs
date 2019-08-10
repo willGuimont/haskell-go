@@ -71,7 +71,7 @@ drawBoard Board {size = (sx, sy)} = makeLine sx id ++ makeLine sy swap
 
 -- Game
 initialBoard :: Board
-initialBoard = makeBoard (9, 9)
+initialBoard = makeBoard boardSize
 
 initialState :: World
 initialState = (initialBoard, Black, [])
@@ -102,7 +102,7 @@ inputHandler (EventKey (MouseButton LeftButton) Down _ (x', y')) (b, s, bs) = ne
         Empty -> Black
     (nextMove, previousBoard) =
       if isJust maybeWorld
-        then (otherMove, b : bs)
+        then (otherMove, nextBoard : bs)
         else (s, bs)
     nextWorld = (nextBoard, nextMove, take 2 previousBoard)
 inputHandler _ b = b
