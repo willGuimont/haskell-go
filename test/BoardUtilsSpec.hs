@@ -11,7 +11,6 @@ import ArbitraryBoard
 import Board
 import BoardUtils
 
--- TODO refactor
 boardUtilsSpec =
   describe "BoardUtils.hasLiberty" $ do
     it "should work example 1" $ do
@@ -72,7 +71,7 @@ boardUtilsSpec =
         let Just b3 = setStone b2 (0, 1) White
         let Just b4 = setStone b3 (1, 1) White
         length (getGroup b4 (0, 0)) `shouldBe` 4
-    describe "BoardUtils.killGroup" $ do
+    describe "BoardUtils.killGroup" $
       it "should work example 1" $ do
         let b0 = makeBoard (4, 4)
         let Just b1 = setStone b0 (0, 0) White
