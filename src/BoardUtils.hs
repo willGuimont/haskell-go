@@ -10,7 +10,6 @@ module BoardUtils
 import Data.List
 import Data.Monoid
 import Data.Tuple.Curry
-import Debug.Trace
 import Safe
 
 import Board
@@ -104,9 +103,9 @@ isPositionEmpty b _ _ _ p = stoneType s == Empty
     s = getStone b p
 
 isNotKOMove :: CanPlayInterface
-isNotKOMove _ n bs _ _ = trace (show (length bs)) $ n /= possibleKO
+isNotKOMove _ n bs _ _ = n /= possibleKO
   where
-    possibleKO = lastMay bs
+    possibleKO = headMay bs
 
 canPlayPosition :: CanPlayInterface
 canPlayPosition b _ _ _ = isPositionValid b
