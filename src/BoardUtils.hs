@@ -119,7 +119,6 @@ isNotSuicide _ n _ _ p =
         in stoneType s /= Empty)
     n
 
--- newBoard needs to be after the kill
 placeStone :: Board -> [Board] -> StoneType -> Position -> Maybe Board
 placeStone b bs st p =
   if canPlayStone
