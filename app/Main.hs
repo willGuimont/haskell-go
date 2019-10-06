@@ -87,8 +87,8 @@ draw (b, s, _, _) = pictures $ drawBoard b ++ concatMap drawStone ss ++ [textTur
         Empty -> "Invalid"
     textScale = scale 0.25 0.25
     pos = fromIntegral windowSize / 2
-    textTurn = translate (-pos) (pos - fromIntegral padding / 2) $ textScale $ text turn
-    instructions = translate (- fromIntegral (windowSize - padding) / 2) (-pos + fromIntegral padding / 2) $ textScale $ text "Z undo, X to redo"
+    textTurn = translate (-pos) (pos - fromIntegral padding / 1.5) $ textScale $ text turn
+    instructions = translate (- fromIntegral (windowSize - padding) / 2) (-pos + fromIntegral padding / 3) $ textScale $ text "Z undo, X to redo, C to pass"
 
 getOtherSymbol :: StoneType -> StoneType
 getOtherSymbol s =
@@ -107,17 +107,21 @@ inputHandler (EventKey (MouseButton LeftButton) Down _ (x', y')) (b, s, bs, _) =
     maybeWorld = placeStone b bs s (x, y)
     nextBoard = fromMaybe b maybeWorld
     otherMove = getOtherSymbol s
-    (nextMove, previousBoard) =
+    (nextMove, previousBoards) =
       if isJust maybeWorld
         then (otherMove, b : bs)
         else (s, bs)
-    nextWorld = (nextBoard, nextMove, previousBoard, [])
+    nextWorld = (nextBoard, nextMove, previousBoards, [])
 inputHandler (EventKey (Char 'z') Down _ _) (b, s, p:bs, redo) = (p, otherMove, bs, b : redo)
   where
     otherMove = getOtherSymbol s
 inputHandler (EventKey (Char 'x') Down _ _) (b, s, bs, p:redo) = (p, otherMove, b:bs,  redo)
   where
     otherMove = getOtherSymbol s
+inputHandler (EventKey (Char 'c') Down _ _) (b, s, bs, _) = nextWorld
+  where
+      nextMove = getOtherSymbol s
+      nextWorld = (b, nextMove, b : bs, [])
 inputHandler _ b = b
 
 update :: Float -> World -> World

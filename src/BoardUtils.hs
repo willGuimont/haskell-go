@@ -73,6 +73,7 @@ foldStones stack accumulator remainder combine predicate =
 killGroup :: Board -> [Stone] -> Maybe Board
 killGroup b = foldl (\n s -> n >>= (\x -> setStone x (position s) Empty)) (Just b)
 
+-- TODO ST Monad?
 updateBoard :: Board -> Position -> Maybe Board
 updateBoard board p =
   foldl
