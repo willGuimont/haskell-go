@@ -9,7 +9,12 @@ import Board
 import BoardUtils
 import Data.Either (isRight, fromRight)
 
-type World = (Board, StoneType, [Board], [Board])
+data World = World
+  { currentBoard :: Board
+  , currentTurn :: StoneType
+  , lastBoards :: [Board]
+  , redoBoards :: [Board]
+}
 
 -- Constants
 fps :: Int
@@ -74,11 +79,14 @@ initialBoard :: Board
 initialBoard = makeBoard boardSize
 
 initialState :: World
-initialState = (initialBoard, Black, [], [])
+initialState = World initialBoard Black [] []
 
+-- (b, s, _, _)
 draw :: World -> Picture
-draw (b, s, _, _) = pictures $ drawBoard b ++ concatMap drawStone ss ++ [textTurn] ++ [instructions]
+draw world = pictures $ drawBoard b ++ concatMap drawStone ss ++ [textTurn] ++ [instructions]
   where
+    b = currentBoard world
+    s = currentTurn world
     ss = stones b
     turn =
       case s of
@@ -100,28 +108,46 @@ getOtherSymbol s =
 
 -- TODO is two pass, end of game
 inputHandler :: Event -> World -> World
-inputHandler (EventKey (MouseButton LeftButton) Down _ (x', y')) (b, s, bs, _) = nextWorld
+inputHandler (EventKey (MouseButton LeftButton) Down _ (x', y')) world = nextWorld
   where
     x = pixelToPosition x'
     y = pixelToPosition y'
-    world = placeStone b bs s (x, y)
-    nextBoard = fromRight b world
+    b = currentBoard world
+    s = currentTurn world
+    bs = lastBoards world
+    afterPlay = placeStone b bs s (x, y)
+    nextBoard = fromRight b afterPlay
     otherMove = getOtherSymbol s
     (nextMove, previousBoards) =
-      if isRight world
+      if isRight afterPlay
         then (otherMove, b : bs)
         else (s, bs)
-    nextWorld = (nextBoard, nextMove, previousBoards, [])
-inputHandler (EventKey (Char 'z') Down _ _) (b, s, p:bs, redo) = (p, otherMove, bs, b : redo)
+    nextWorld = World nextBoard nextMove previousBoards []
+inputHandler (EventKey (Char 'z') Down _ _) world = nextWorld
   where
+    s = currentTurn world
+    b = currentBoard world
+    redo = redoBoards world
     otherMove = getOtherSymbol s
-inputHandler (EventKey (Char 'x') Down _ _) (b, s, bs, p:redo) = (p, otherMove, b:bs,  redo)
+    nextWorld = case lastBoards world of
+                  p:bs -> World p otherMove bs (b:redo)
+                  _ -> world
+inputHandler (EventKey (Char 'x') Down _ _) world = nextWorld
   where
+    s = currentTurn world
+    b = currentBoard world
+    bs = lastBoards world
     otherMove = getOtherSymbol s
-inputHandler (EventKey (Char 'c') Down _ _) (b, s, bs, _) = nextWorld
+    nextWorld = case redoBoards world of
+                  p:redo -> World p otherMove (b:bs) redo
+                  _ -> world
+inputHandler (EventKey (Char 'c') Down _ _) world = nextWorld
   where
+      s = currentTurn world
+      b = currentBoard world
+      bs = lastBoards world
       nextMove = getOtherSymbol s
-      nextWorld = (b, nextMove, b : bs, [])
+      nextWorld = World b nextMove (b:bs) []
 inputHandler _ b = b
 
 update :: Float -> World -> World
