@@ -13,6 +13,7 @@ import Data.Tuple.Curry
 import Safe
 
 import Board
+import Data.Either (fromRight)
 
 isPositionValid :: Board -> Position -> Bool
 isPositionValid b p = x >= 0 && y >= 0 && x < sx && y < sy
@@ -70,11 +71,11 @@ foldStones stack accumulator remainder combine predicate =
     newRemainder = remainder \\ newNeighbors
     newAccumulator = accumulator `combine` current
 
-killGroup :: Board -> [Stone] -> Maybe Board
-killGroup b = foldl (\n s -> n >>= (\x -> setStone x (position s) Empty)) (Just b)
+killGroup :: Board -> [Stone] -> Either Error Board
+killGroup b = foldl (\n s -> n >>= (\x -> setStone x (position s) Empty)) (Right b)
 
 -- TODO ST Monad?
-updateBoard :: Board -> Position -> Maybe Board
+updateBoard :: Board -> Position -> Either Error Board
 updateBoard board p =
   foldl
     (\mb s ->
@@ -84,14 +85,31 @@ updateBoard board p =
             then (let ss = getGroup b (position s)
                    in killGroup b ss)
             else mb))
-    (Just board)
+    (Right board)
     toCheck
   where
     current = getStone board p
     neighbors = getNeighbors board current
     toCheck = neighbors ++ [current]
 
-type CanPlayInterface = Board -> Maybe Board -> [Board] -> StoneType -> Position -> Bool
+{-
+  runST $ do
+    bref <- newSTRef board
+    let group = getGroup board position
+    forM_ group $ \p -> do
+      when (not $ hasLiberties board p) $ do
+        let b = killGroup board (getGroup board p)
+        writeSTRef bref (Just b)
+    b <- readSTRef bref
+    writeSTRef bref b
+    Just <$> readSTRef bref
+  where
+    current = getStone board position
+    neighbors = getNeighbors board current
+    toCheck = neighbors ++ [current]
+
+-}
+type CanPlayInterface = Board -> Board -> [Board] -> StoneType -> Position -> Bool
 
 canPlay :: CanPlayInterface
 canPlay v w x y z = getAll $ foldMap (All .) predicates (v, w, x, y, z)
@@ -104,7 +122,7 @@ isPositionEmpty b _ _ _ p = stoneType s == Empty
     s = getStone b p
 
 isNotKOMove :: CanPlayInterface
-isNotKOMove _ n bs _ _ = n /= possibleKO
+isNotKOMove _ n bs _ _ = Just n /= possibleKO
   where
     possibleKO = headMay bs
 
@@ -113,19 +131,16 @@ canPlayPosition b _ _ _ = isPositionValid b
 
 isNotSuicide :: CanPlayInterface
 isNotSuicide _ n _ _ p =
-  maybe
-    False
-    (\x ->
-       let s = getStone x p
-        in stoneType s /= Empty)
-    n
+  let s = getStone n p
+  in stoneType s /= Empty
 
-placeStone :: Board -> [Board] -> StoneType -> Position -> Maybe Board
+placeStone :: Board -> [Board] -> StoneType -> Position -> Either String Board
 placeStone b bs st p =
   if canPlayStone
     then updatedBoard
-    else Nothing
+    else Left "could not play"
   where
     newBoard = setStone b p st
-    updatedBoard = newBoard >>= (`updateBoard` p)
-    canPlayStone = canPlay b updatedBoard bs st p
+    updatedBoard =  newBoard >>= (`updateBoard` p) 
+    canPlayStoneEither = fmap (\nb -> canPlay b nb bs st p) updatedBoard
+    canPlayStone = fromRight False canPlayStoneEither

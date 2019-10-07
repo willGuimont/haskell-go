@@ -29,7 +29,7 @@ setStonePositionProperty (b, p, st) =
   fst p < 0 || snd p < 0 || all (\x -> position x /= p) ss || (length ss <= 0) || stoneType s == st
   where
     ss = stones b
-    Just s = (`getStone` p) <$> setStone b p st
+    Right s = (`getStone` p) <$> setStone b p st
 
 boardSpec = do
   describe "Board.makeBoard" $ do

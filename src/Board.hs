@@ -10,6 +10,7 @@ module Board
   , stones
   , Position
   , Size
+  , Error
   , makeBoard
   , getStone
   , setStone
@@ -17,6 +18,7 @@ module Board
 
 import Data.List
 import Data.List.Tools
+import Data.Either.Utils (maybeToEither)
 
 data StoneType
   = Black
@@ -42,6 +44,8 @@ type Position = (Int, Int)
 
 type Size = (Int, Int)
 
+type Error = String
+
 makeBoard :: Size -> Board
 makeBoard s = Board emptyStones s
   where
@@ -52,8 +56,8 @@ makeBoard s = Board emptyStones s
 getStone :: Board -> Position -> Stone
 getStone board pos = head $ filter (\x -> position x == pos) (stones board)
 
-setStone :: Board -> Position -> StoneType -> Maybe Board
-setStone b p s = newBoard
+setStone :: Board -> Position -> StoneType -> Either Error Board
+setStone b p s = maybeToEither "cannot set stone" newBoard
   where
     ss = stones b
     index = getStone b p `elemIndex` ss

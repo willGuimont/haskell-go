@@ -3,11 +3,11 @@
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
-import Data.Maybe
 import Data.Tuple
 
 import Board
 import BoardUtils
+import Data.Either (isRight, fromRight)
 
 type World = (Board, StoneType, [Board], [Board])
 
@@ -97,18 +97,18 @@ getOtherSymbol s =
     White -> Black
     Empty -> Black
 
--- TODO space to pass
+
 -- TODO is two pass, end of game
 inputHandler :: Event -> World -> World
 inputHandler (EventKey (MouseButton LeftButton) Down _ (x', y')) (b, s, bs, _) = nextWorld
   where
     x = pixelToPosition x'
     y = pixelToPosition y'
-    maybeWorld = placeStone b bs s (x, y)
-    nextBoard = fromMaybe b maybeWorld
+    world = placeStone b bs s (x, y)
+    nextBoard = fromRight b world
     otherMove = getOtherSymbol s
     (nextMove, previousBoards) =
-      if isJust maybeWorld
+      if isRight world
         then (otherMove, b : bs)
         else (s, bs)
     nextWorld = (nextBoard, nextMove, previousBoards, [])
