@@ -1,4 +1,5 @@
 {-# OPTIONS -Wall #-}
+{-# LANGUAGE LambdaCase #-}
 
 module BoardUtils
   ( placeStone
@@ -13,7 +14,10 @@ import Data.Tuple.Curry
 import Safe
 
 import Board
+import Control.Monad (forM_)
+import Control.Monad.ST (runST)
 import Data.Either (fromRight)
+import Data.STRef (newSTRef, readSTRef, writeSTRef)
 
 isPositionValid :: Board -> Position -> Bool
 isPositionValid b p = x >= 0 && y >= 0 && x < sx && y < sy
@@ -74,7 +78,6 @@ foldStones stack accumulator remainder combine predicate =
 killGroup :: Board -> [Stone] -> Either Error Board
 killGroup b = foldl (\n s -> n >>= (\x -> setStone x (position s) Empty)) (Right b)
 
--- TODO ST Monad?
 updateBoard :: Board -> Position -> Either Error Board
 updateBoard board p =
   foldl
@@ -92,23 +95,24 @@ updateBoard board p =
     neighbors = getNeighbors board current
     toCheck = neighbors ++ [current]
 
-{-
+countPoints :: [MarkedStone] -> Score
+countPoints ms =
   runST $ do
-    bref <- newSTRef board
-    let group = getGroup board position
-    forM_ group $ \p -> do
-      when (not $ hasLiberties board p) $ do
-        let b = killGroup board (getGroup board p)
-        writeSTRef bref (Just b)
-    b <- readSTRef bref
-    writeSTRef bref b
-    Just <$> readSTRef bref
+    blackScoreRef <- newSTRef 0
+    whiteScoreRef <- newSTRef 0
+    forM_ ms $ \case
+      WhiteMark -> updateScore whiteScoreRef
+      BlackMark -> updateScore blackScoreRef
+      _ -> pure ()
+    b <- readSTRef blackScoreRef
+    w <- readSTRef whiteScoreRef
+    return $ Score b w
   where
-    current = getStone board position
-    neighbors = getNeighbors board current
-    toCheck = neighbors ++ [current]
+    updateScore scoreRef = do
+      s <- readSTRef scoreRef
+      let newScore = s + 1
+      writeSTRef scoreRef newScore
 
--}
 type CanPlayInterface = Board -> Board -> [Board] -> StoneType -> Position -> Bool
 
 canPlay :: CanPlayInterface
@@ -132,7 +136,7 @@ canPlayPosition b _ _ _ = isPositionValid b
 isNotSuicide :: CanPlayInterface
 isNotSuicide _ n _ _ p =
   let s = getStone n p
-  in stoneType s /= Empty
+   in stoneType s /= Empty
 
 placeStone :: Board -> [Board] -> StoneType -> Position -> Either String Board
 placeStone b bs st p =
@@ -141,6 +145,6 @@ placeStone b bs st p =
     else Left "could not play"
   where
     newBoard = setStone b p st
-    updatedBoard =  newBoard >>= (`updateBoard` p) 
+    updatedBoard = newBoard >>= (`updateBoard` p)
     canPlayStoneEither = fmap (\nb -> canPlay b nb bs st p) updatedBoard
     canPlayStone = fromRight False canPlayStoneEither

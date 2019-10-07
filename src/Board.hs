@@ -10,15 +10,19 @@ module Board
   , stones
   , Position
   , Size
+  , Score(Score)
+  , blackScore
+  , whiteScore
+  , MarkedStone(Unmarked, WhiteMark, BlackMark, BothMark)
   , Error
   , makeBoard
   , getStone
   , setStone
   ) where
 
+import Data.Either.Utils (maybeToEither)
 import Data.List
 import Data.List.Tools
-import Data.Either.Utils (maybeToEither)
 
 data StoneType
   = Black
@@ -43,6 +47,18 @@ data Board =
 type Position = (Int, Int)
 
 type Size = (Int, Int)
+
+data Score =
+  Score
+    { blackScore :: Int
+    , whiteScore :: Int
+    }
+
+data MarkedStone
+  = Unmarked
+  | WhiteMark
+  | BlackMark
+  | BothMark
 
 type Error = String
 
